@@ -1,0 +1,204 @@
+! SW1 - show running-config final (Asignacion 2 - AAA con RADIUS / NPS)
+! Jose Gabriel Feliz Maria - 2025-0742
+! Se reemplazaron por <OCULTO>: el hash del enable secret, el hash de la clave del
+! usuario local y el secreto RADIUS (key 7, que es reversible).
+! exec-timeout 10 0 e ip ssh authentication-retries 3 no aparecen porque son
+! los valores por defecto. Esta imagen (IOL L2 15.2) no acepto
+! "security passwords min-length 10" ni "no ip http secure-server" (no tiene HTTPS).
+!
+Building configuration...
+
+Current configuration : 4496 bytes
+!
+! Last configuration change at 13:38:58 AST Fri Oct 23 2026 by usuario0
+!
+version 15.2
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service compress-config
+!
+hostname SW1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+logging buffered 64000
+enable secret 9 <OCULTO>
+!
+username G4br1el privilege 15 secret 9 <OCULTO>
+aaa new-model
+!
+!
+aaa group server radius GRUPO-NPS
+ server name NPS
+ ip radius source-interface Vlan99
+!
+aaa authentication login default group GRUPO-NPS
+aaa authentication login VTY-RADIUS group GRUPO-NPS
+aaa authentication login CON-AUX group GRUPO-NPS local
+aaa authentication enable default enable
+aaa authorization console
+aaa authorization exec default group GRUPO-NPS
+aaa authorization exec VTY-RADIUS group GRUPO-NPS
+aaa authorization exec CON-AUX group GRUPO-NPS local
+aaa accounting exec default start-stop group GRUPO-NPS
+!
+!
+!
+!
+!
+!
+aaa session-id common
+clock timezone AST -4 0
+!
+!
+!
+!
+!
+no ip routing
+!
+!
+!
+no ip domain-lookup
+ip domain-name jose.gabriel
+no ip cef
+login block-for 60 attempts 5 within 60
+login on-failure log
+login on-success log
+no ipv6 cef
+!
+!
+archive
+ log config
+  logging enable
+  notify syslog contenttype plaintext
+  hidekeys
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface Ethernet0/0
+ description TRUNK-R1-e0/0
+ switchport trunk allowed vlan 10,20,99
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 999
+ switchport mode trunk
+ switchport nonegotiate
+!
+interface Ethernet0/1
+ description SERVIDOR-AD-NPS (Windows Server - Cloud3)
+ switchport access vlan 20
+ switchport mode access
+ switchport port-security maximum 4
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+ switchport port-security mac-address sticky 000c.2944.31f8
+ switchport port-security mac-address sticky 000c.29ce.0268
+ switchport port-security mac-address sticky 0050.56c0.0004
+ switchport port-security
+ spanning-tree portfast edge
+ spanning-tree bpduguard enable
+!
+interface Ethernet0/2
+ description PC-ADMIN (PC host - Cloud4)
+ switchport access vlan 10
+ switchport mode access
+ switchport port-security maximum 3
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+ switchport port-security mac-address sticky 000c.29ce.0272
+ switchport port-security mac-address sticky 0050.56c0.0008
+ switchport port-security
+ spanning-tree portfast edge
+ spanning-tree bpduguard enable
+!
+interface Ethernet0/3
+ description SIN-USO
+ switchport access vlan 999
+ switchport mode access
+ shutdown
+!
+interface Vlan99
+ description GESTION-SW1
+ ip address 10.7.42.138 255.255.255.248
+ no ip route-cache
+!
+ip default-gateway 10.7.42.137
+ip forward-protocol nd
+!
+no ip http server
+!
+ip ssh time-out 60
+ip ssh version 2
+ip ssh server algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+ip ssh client algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+!
+!
+access-list 10 remark Solo la VLAN 10 (administracion) abre SSH
+access-list 10 permit 10.7.42.0 0.0.0.127
+!
+!
+!
+!
+radius server NPS
+ address ipv4 10.7.42.130 auth-port 1812 acct-port 1813
+ timeout 5
+ retransmit 2
+ key 7 <OCULTO>
+!
+!
+control-plane
+!
+privilege interface level 10 shutdown
+privilege interface level 10 description
+privilege configure level 10 interface
+privilege exec level 5 ping
+privilege exec level 10 configure terminal
+privilege exec level 10 configure
+privilege exec level 5 show port-security
+privilege exec level 5 show mac address-table
+privilege exec level 5 show mac
+privilege exec level 5 show vlan brief
+privilege exec level 5 show vlan
+privilege exec level 5 show users
+privilege exec level 10 show running-config
+privilege exec level 5 show logging
+privilege exec level 0 show privilege
+privilege exec level 5 show interfaces status
+privilege exec level 5 show interfaces
+privilege exec level 0 show
+banner motd ^CSW1 - Acceso restringido a personal autorizado. AAA con RADIUS - 2025-0742^C
+!
+line con 0
+ authorization exec CON-AUX
+ logging synchronous
+ login authentication CON-AUX
+line aux 0
+ authorization exec CON-AUX
+ login authentication CON-AUX
+line vty 0 4
+ access-class 10 in
+ authorization exec VTY-RADIUS
+ login authentication VTY-RADIUS
+ transport input ssh
+!
+ntp server 10.7.42.130
+!
+!
+end
