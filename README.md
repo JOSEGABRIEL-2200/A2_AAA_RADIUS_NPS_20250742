@@ -7,7 +7,7 @@
 
 ## 🎥 Video Demostrativo
 
-**[Ver demostración en YouTube](PENDIENTE_LINK_VIDEO)**
+**[Ver demostración en YouTube](https://youtu.be/EIczeuV521c)**
 
 En el video se muestra la hora y fecha del sistema, el rostro y la voz del autor, y la demostración de que R1 y SW1 autentican y autorizan contra el NPS: cada usuario del dominio entra por SSH con el nivel de privilegio de su grupo (0, 5 o 10), los accesos inválidos se rechazan y quedan registrados, y el usuario local de recuperación solo funciona por consola cuando el servidor RADIUS no responde.
 
